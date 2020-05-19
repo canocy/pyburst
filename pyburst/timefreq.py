@@ -267,4 +267,4 @@ def twisted_conv(f, g):
     
     a = _col2diag(numpy.fft.ifft(f, axis=0)) * f.shape[0]
     b = _col2diag(numpy.fft.ifft(g, axis=0)) * g.shape[0]
-    return numpy.fft.fft(comp_col2diag(numpy.dot(a, b)), axis=0) / f.shape[0]
+    return numpy.fft.fft(_col2diag(numpy.dot(a, b)), axis=0) / f.shape[0]

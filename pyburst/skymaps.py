@@ -370,6 +370,54 @@ class Skymap(object):
         return Skypoint(coords[1], math.pi/2-coords[0], self.coordsystem, \
                              label + " (val={0:.2f})".format(numpy.min(self.data)))
     
+    def argmax(self, label = 'skymap maximum'):
+        """
+        Returns the location of the skymap maximum
+        """
+        
+        coords = healpy.pix2ang(self.nside,numpy.argmax(self.data), nest=self.is_nested())
+        return Skypoint(coords[1], math.pi/2-coords[0], self.coordsystem, \
+                             label + " (val={0:.2f})".format(numpy.max(self.data)))
+    
+    def nearest_pixel(self, skypoint):             ## Modify to accept several points instead of just one
+        """
+        Returns the nearest pixel's indice of skypoint
+        """
+        colat, lon = skypoint.coords()
+        return healpy.ang2pix(self.nside, colat, lon, nest=self.is_nested())
+    
+    def find_greedy_credible_levels(self):
+        """Find the greedy credible levels of a (possibly multi-dimensional) array.
+        from : https://lscsoft.docs.ligo.org/ligo.skymap/_modules/ligo/skymap/postprocess/util.html#find_greedy_credible_levels
+
+        Returns
+        -------
+        cls : np.ndarray
+            An array with the same shape as slef.data, with values ranging from `0`
+            to `self.data.sum()`, representing the greedy credible level to which each
+            entry in the array belongs.
+        """
+        i = numpy.flipud(numpy.argsort(self.data))
+        cs = numpy.cumsum(self.data[i])
+        cls = numpy.empty_like(self.data)
+        cls[i] = cs
+        return cls
+
+    def test_skypoint_credible_level(self, skypoint, level=0.9, verbose=False):
+        ipix = self.nearest_pixel(skypoint)
+        credible_levels = self.find_greedy_credible_levels()
+        if np.min(credible_levels) > level:
+            if verbose:
+                print('No region with this low credible level.')
+            if  credible_levels[ipix]==np.min(credible_levels):
+                if verbose:
+                    print('This skypoint alone have a credible level of {:.3}.'.format(credible_levels[ipix]))
+                return True
+            else :
+                return False
+        else :
+            return credible_levels[ipix] <= level
+    
     def display(self, title, cmap_name='gray_r'):
         """
         Display the skymap
